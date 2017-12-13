@@ -18,11 +18,12 @@ public:
 
 private:
     void readTileData(int StartRow, int StartColumn, int EndRow, int EndColumn, GDALDataset * poDataset);
-    void readTileData(int StartRow, int StartColumn, int EndRow, int EndColumn, GDALDataset * poDataset, int Border);
+    void readTileData(int StartRow, int StartColumn, int EndRow, int EndColumn, GDALDataset * poDataset, int Border,
+                      bool top, bool bottom, bool left, bool right);
     void writeTileData(int StartRow, int StartColumn, int NbrRows, int NbrColumns,
                        float * TileData,
                        double adfGeoTransform[6],
-                       GDALDataset * srcDataset);
+                       GDALDataset * srcDataset, std::string Prefix);
 
 };
 
