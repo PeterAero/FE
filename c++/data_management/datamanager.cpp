@@ -7,44 +7,26 @@ void dataManager::tiledata(GDALDataset * srcDataset, int Border){
     // iterate over Image
     int TileSize = 200;
     int StartRow = 0, EndRow = 0, StartColumn = 0, EndColumn = 0;
-    bool top = false, bottom = false, left = false, right = false;
-    std::cout << "Enter Tiling with Border" << std::endl;
 
     for(int i = 0; i < srcDataset->GetRasterXSize(); i += TileSize){
         for(int j = 0; j < srcDataset->GetRasterYSize(); j += TileSize){
 
-            if(i == 0){
-                StartRow = i;
-                top = true;
-            }else{
-                StartRow = i - Border;
-            }
+            StartRow = i;
+            StartColumn = j;
 
-            if(j == 0){
-                StartColumn = j;
-                left = true;
-            }else{
-                StartColumn = j - Border;
-            }
-
-            if(srcDataset->GetRasterYSize() < StartColumn + TileSize + Border){
+            if(srcDataset->GetRasterYSize() < StartColumn + TileSize){
                 EndColumn = srcDataset->GetRasterYSize();
-                right = true;
             }else{
-                EndColumn = StartColumn + TileSize + Border;
+                EndColumn = StartColumn + TileSize;
             }
 
-            if(srcDataset->GetRasterXSize() < StartRow + TileSize + Border){
+            if(srcDataset->GetRasterXSize() < StartRow + TileSize){
                 EndRow = srcDataset->GetRasterXSize();
-                bottom = true;
             }else{
                 EndRow = StartRow + TileSize;
             }
-            std::cout << "top: " << top << std::endl;
-            std::cout << "bottom: " << top << std::endl;
-            std::cout << "left: " << top << std::endl;
-            std::cout << "right: " << top << std::endl;
-            readTileData(StartRow, StartColumn, EndRow, EndColumn, srcDataset, Border, top, bottom, left, right);
+
+            readTileData(StartRow, StartColumn, EndRow, EndColumn, srcDataset, Border);
 
         }
 
@@ -53,10 +35,11 @@ void dataManager::tiledata(GDALDataset * srcDataset, int Border){
     GDALClose( (GDALDatasetH) srcDataset );
 }
 
+/*
 void dataManager::tiledata(GDALDataset * srcDataset){
 
     // iterate over Image
-    int TileSize = 200;
+    int TileSize = 400;
     int StartRow, EndRow, StartColumn, EndColumn = 0;
 
     for(int i = 0; i < srcDataset->GetRasterXSize(); i += TileSize){
@@ -82,7 +65,8 @@ void dataManager::tiledata(GDALDataset * srcDataset){
 
     GDALClose( (GDALDatasetH) srcDataset );
 }
-
+*/
+/*
 void dataManager::readTileData(int StartRow, int StartColumn, int EndRow, int EndColumn, GDALDataset * poDataset){
 
     float * TileData;
@@ -106,7 +90,65 @@ void dataManager::readTileData(int StartRow, int StartColumn, int EndRow, int En
     writeTileData(StartRow, StartColumn, nXSize, nYSize, TileData, adfGeoTransform, poDataset, "NoBorder");
 
 }
+*/
+void dataManager::readTileData(int StartRow, int StartColumn, int EndRow, int EndColumn,
+                               GDALDataset * poDataset, int Border){
 
+    float * TileData;
+    GDALRasterBand *poBand;
+    poBand = poDataset->GetRasterBand( 1 );
+
+    int nXSize = (EndRow - StartRow) + 2 * Border;
+    int nYSize = (EndColumn - StartColumn) + 2 * Border;
+
+    TileData = (float *) CPLMalloc(sizeof(float)*nXSize*nYSize);
+    for(int i = 0; i < nXSize*nYSize; i++){
+        TileData[i] = 0.;
+    }
+
+    if(Border != 0){
+
+        if(StartRow != 0 && StartColumn != 0 && EndRow != poDataset->GetRasterXSize() && EndColumn != poDataset->GetRasterYSize()){
+
+            poBand->RasterIO( GF_Read, StartRow - Border, StartColumn - Border, nXSize, nYSize,
+                              TileData, nXSize, nYSize, GDT_Float32,
+                              0, 0 );
+        }else if(StartRow == 0 && StartColumn == 0){
+            float * tmpTileData;
+            int nXSize = (EndRow - StartRow) + 1 * Border;
+            int nYSize = (EndColumn - StartColumn) + 1 * Border;
+            tmpTileData = (float *) CPLMalloc(sizeof(float)*nXSize*nYSize);
+            poBand->RasterIO( GF_Read, StartRow, StartColumn, nXSize, nYSize,
+                              TileData, nXSize, nYSize, GDT_Float32,
+                              0, 0 );
+            //TODO overwrite TileData with tmpTileData
+            for(int i = 0; i < nXSize*nYSize; i++){
+                TileData[i] = 0.;
+            }
+
+        }
+
+    }else{
+
+        poBand->RasterIO( GF_Read, StartRow, StartColumn, nXSize, nYSize,
+                          TileData, nXSize, nYSize, GDT_Float32,
+                          0, 0 );
+    }
+
+    double adfGeoTransform[6];
+    poDataset->GetGeoTransform( adfGeoTransform );
+    adfGeoTransform[0] += (StartRow - Border) * adfGeoTransform[1] ;
+    adfGeoTransform[3] += (StartColumn - Border) * adfGeoTransform[5];
+
+    if (Border == 0){
+        writeTileData(StartRow, StartColumn, nXSize, nYSize, TileData, adfGeoTransform, poDataset, "NoBorder");
+    }else{
+        writeTileData(StartRow, StartColumn, nXSize, nYSize, TileData, adfGeoTransform, poDataset, "Border");
+    }
+
+}
+
+/*
 void dataManager::readTileData(int StartRow, int StartColumn, int EndRow, int EndColumn, GDALDataset * poDataset,
                                int Border, bool top, bool bottom, bool left, bool right){
 
@@ -123,15 +165,15 @@ void dataManager::readTileData(int StartRow, int StartColumn, int EndRow, int En
     for(int i = 0; i < nXSize*nYSize; i++){
         TileData[i] = 0.;
     }
-    /*
-    poBand->RasterIO( GF_Read, StartRow, StartColumn, nXSize, nYSize,
-                      TileData, nXSize, nYSize, GDT_Float32,
-                      0, 0 );
-    */
+
+    //poBand->RasterIO( GF_Read, StartRow, StartColumn, nXSize, nYSize,
+    //                  TileData, nXSize, nYSize, GDT_Float32,
+    //                  0, 0 );
+
     double adfGeoTransform[6];
     poDataset->GetGeoTransform( adfGeoTransform );
-    adfGeoTransform[0] += StartRow * adfGeoTransform[1];
-    adfGeoTransform[3] += StartColumn * adfGeoTransform[5];
+    adfGeoTransform[0] += (StartRow * adfGeoTransform[1]);
+    adfGeoTransform[3] += (StartColumn * adfGeoTransform[5]);
 
     if (top == true && left == true){
 
@@ -140,8 +182,8 @@ void dataManager::readTileData(int StartRow, int StartColumn, int EndRow, int En
         for(int i = 0; i < nXSize*nYSize; i++){
             TileDataBuffer[i] = 0;
         }
-        adfGeoTransform[0] -= Border*adfGeoTransform[1];
-        adfGeoTransform[3] -= Border*adfGeoTransform[5];
+        //adfGeoTransform[0] -= Border*adfGeoTransform[1];
+        //adfGeoTransform[3] -= Border*adfGeoTransform[5];
         writeTileData(StartRow, StartColumn, nXSize + Border, nYSize + Border, TileDataBuffer, adfGeoTransform, poDataset, "Border");
 
     }else if(top == true && right == true){
@@ -151,7 +193,8 @@ void dataManager::readTileData(int StartRow, int StartColumn, int EndRow, int En
         for(int i = 0; i < nXSize*nYSize; i++){
             TileDataBuffer[i] = 0;
         }
-        adfGeoTransform[0] -= Border*adfGeoTransform[1];
+        //adfGeoTransform[0] -= Border*adfGeoTransform[1];
+        //adfGeoTransform[3] -= Border*adfGeoTransform[5];
         writeTileData(StartRow, StartColumn, nXSize + Border, nYSize + Border, TileDataBuffer, adfGeoTransform, poDataset, "Border");
 
     }else if(bottom == true && left == true){
@@ -161,18 +204,62 @@ void dataManager::readTileData(int StartRow, int StartColumn, int EndRow, int En
         for(int i = 0; i < nXSize*nYSize; i++){
             TileDataBuffer[i] = 0;
         }
-        adfGeoTransform[0] -= Border*adfGeoTransform[1];
+        //adfGeoTransform[0] -= Border*adfGeoTransform[1];
+        //adfGeoTransform[3] -= Border*adfGeoTransform[5];
         writeTileData(StartRow, StartColumn, nXSize + Border, nYSize + Border, TileDataBuffer, adfGeoTransform, poDataset, "Border");
 
     }else if(bottom == true && right == true){
 
+        float * TileDataBuffer;
+        TileDataBuffer = (float *) CPLMalloc(sizeof(float)* (nXSize + Border) * (nYSize + Border));
+        for(int i = 0; i < nXSize*nYSize; i++){
+            TileDataBuffer[i] = 0;
+        }
+        //adfGeoTransform[0] -= Border*adfGeoTransform[1];
+        //adfGeoTransform[3] -= Border*adfGeoTransform[5];
+        writeTileData(StartRow, StartColumn, nXSize + Border, nYSize + Border, TileDataBuffer, adfGeoTransform, poDataset, "Border");
+
     }else if(top == true){
+
+        float * TileDataBuffer;
+        TileDataBuffer = (float *) CPLMalloc(sizeof(float)* (nXSize + Border) * (nYSize + Border));
+        for(int i = 0; i < nXSize*nYSize; i++){
+            TileDataBuffer[i] = 0;
+        }
+        //adfGeoTransform[0] -= Border*adfGeoTransform[1];
+        //adfGeoTransform[3] -= Border*adfGeoTransform[5];
+        writeTileData(StartRow, StartColumn, nXSize + Border, nYSize + Border, TileDataBuffer, adfGeoTransform, poDataset, "Border");
 
     }else if(bottom == true){
 
+        float * TileDataBuffer;
+        TileDataBuffer = (float *) CPLMalloc(sizeof(float)* (nXSize + Border) * (nYSize + Border));
+        for(int i = 0; i < nXSize*nYSize; i++){
+            TileDataBuffer[i] = 0;
+        }
+        //adfGeoTransform[0] -= Border*adfGeoTransform[1];
+        //adfGeoTransform[3] -= Border*adfGeoTransform[5];
+        writeTileData(StartRow, StartColumn, nXSize + Border, nYSize + Border, TileDataBuffer, adfGeoTransform, poDataset, "Border");
+
     }else if(left == true){
+        float * TileDataBuffer;
+        TileDataBuffer = (float *) CPLMalloc(sizeof(float)* (nXSize + Border) * (nYSize + Border));
+        for(int i = 0; i < nXSize*nYSize; i++){
+            TileDataBuffer[i] = 0;
+        }
+        //adfGeoTransform[0] -= Border*adfGeoTransform[1];
+        //adfGeoTransform[3] -= Border*adfGeoTransform[5];
+        writeTileData(StartRow, StartColumn, nXSize + Border, nYSize + Border, TileDataBuffer, adfGeoTransform, poDataset, "Border");
 
     }else if(right == true){
+        float * TileDataBuffer;
+        TileDataBuffer = (float *) CPLMalloc(sizeof(float)* (nXSize + Border) * (nYSize + Border));
+        for(int i = 0; i < nXSize*nYSize; i++){
+            TileDataBuffer[i] = 0;
+        }
+        //adfGeoTransform[0] -= Border*adfGeoTransform[1];
+        //adfGeoTransform[3] -= Border*adfGeoTransform[5];
+        writeTileData(StartRow, StartColumn, nXSize + Border, nYSize + Border, TileDataBuffer, adfGeoTransform, poDataset, "Border");
 
     }else{
         writeTileData(StartRow, StartColumn, nXSize, nYSize, TileData, adfGeoTransform, poDataset, "Border");
@@ -180,7 +267,7 @@ void dataManager::readTileData(int StartRow, int StartColumn, int EndRow, int En
 
 
 }
-
+*/
 void dataManager::writeTileData(int StartRow, int StartColumn, int NbrRows, int NbrColumns,
                    float * TileData,
                    double adfGeoTransform[6],

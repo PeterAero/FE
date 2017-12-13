@@ -12,19 +12,19 @@ using namespace std;
 
 int main(int argc, char *argv[])
 {
-    std::cout << "call tiling with border" << std::endl;
+
     GDALAllRegister();
     GDALDataset  * srcDataset;
     srcDataset = (GDALDataset *) GDALOpen( "/home/peter/Desktop/SP27GTIF.TIF", GA_ReadOnly );
 
     dataManager MyDataManager;
 
-    MyDataManager.tiledata(srcDataset);
-    std::cout << "call tiling with border" << std::endl;
+    MyDataManager.tiledata(srcDataset, 0);
+
     GDALDataset  * srcDataset2;
     srcDataset2 = (GDALDataset *) GDALOpen( "/home/peter/Desktop/SP27GTIF.TIF", GA_ReadOnly );
 
-    MyDataManager.tiledata(srcDataset2, 30);
+    MyDataManager.tiledata(srcDataset2, 5);
 
     return 0;
 }
