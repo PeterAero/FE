@@ -13,16 +13,17 @@ using namespace std;
 int main(int argc, char *argv[])
 {
 
+    char * MyTif = "/home/fisc_p0/Desktop/TestData/SP27GTIF.TIF";
     GDALAllRegister();
     GDALDataset  * srcDataset;
-    srcDataset = (GDALDataset *) GDALOpen( "/home/peter/Desktop/SP27GTIF.TIF", GA_ReadOnly );
+    srcDataset = (GDALDataset *) GDALOpen( MyTif, GA_ReadOnly );
 
     dataManager MyDataManager;
 
     MyDataManager.tiledata(srcDataset, 0);
 
     GDALDataset  * srcDataset2;
-    srcDataset2 = (GDALDataset *) GDALOpen( "/home/peter/Desktop/SP27GTIF.TIF", GA_ReadOnly );
+    srcDataset2 = (GDALDataset *) GDALOpen( MyTif, GA_ReadOnly );
 
     MyDataManager.tiledata(srcDataset2, 5);
 
