@@ -2,6 +2,47 @@
 
 
 
+int dataManager::getTilePosition(int StartRow, int StartColumn, int EndRow, int EndColumn,
+                                  int NbrColumns, int NbrRows){
+
+    enum BorderType {NoBorder = 0, Left = 1, Right = 2, Up = 3, Down = 4,
+                     UpLeft = 5, UpRight = 6, LowLeft = 7, LowRight = 8};
+
+    BorderType MyBorder;
+
+    // if no NoData-Space around the Tile
+    if(StartRow != 0 && StartColumn != 0 && EndRow != NbrRows && EndColumn != NbrColumns){
+        MyBorder = NoBorder;
+    // if upper left corner Tile
+    }else if(StartRow == 0 && StartColumn == 0){
+        MyBorder = UpLeft;
+    // if upper tile, no left or right corner
+    }else if(StartRow == 0 && StartColumn != 0 && EndColumn != NbrColumns){
+        MyBorder = Up;
+    // if upper right corner
+    }else if(StartRow == 0 && StartColumn != 0 && EndColumn == NbrColumns){
+        MyBorder = UpRight;
+    // if left border
+    }else if(StartRow != 0 && StartColumn == 0 && EndColumn != NbrColumns && EndRow != NbrRows){
+        MyBorder = Left;
+    // if right boarder
+    }else if(StartRow != 0 && StartColumn != 0 && EndColumn == NbrColumns && EndRow != NbrRows){
+        MyBorder = Right;
+    // if lower border
+    }else if(StartRow != 0 && EndRow == NbrRows && StartColumn != 0 && EndColumn != NbrColumns){
+        MyBorder = Down;
+        // if lower left corner
+     }else if(StartColumn == 0 && EndRow == NbrRows){
+        MyBorder = LowLeft;
+    // if lower right corner
+    }else if(StartRow != 0 && StartColumn != 0 && EndColumn == NbrColumns && EndRow == NbrRows){
+        MyBorder = LowRight;
+    }
+
+    return MyBorder;
+
+}
+
 void dataManager::tiledata(GDALDataset * srcDataset, int Border){
 
     // iterate over Image
@@ -53,6 +94,7 @@ void dataManager::readTileData(int StartRow, int StartColumn, int EndRow, int En
     int NbrColumns = poDataset->GetRasterXSize();
     int NbrRows = poDataset->GetRasterYSize();
 
+
     TileData = (float *) CPLMalloc(sizeof(float)*NbrRowsBorderTile*NbrColumnsBorderTile);
     for(int i = 0; i < NbrRowsBorderTile*NbrColumnsBorderTile; i++){
         TileData[i] = 0.;
@@ -60,127 +102,100 @@ void dataManager::readTileData(int StartRow, int StartColumn, int EndRow, int En
 
     if(Border != 0){
 
-        // if no NoData-Space around the Tile
-        if(StartRow != 0 && StartColumn != 0 && EndRow != poDataset->GetRasterYSize() && EndColumn != poDataset->GetRasterXSize()){
+        int BorderPosition = this->getTilePosition(StartRow, StartColumn, EndRow, EndColumn, NbrColumns, NbrRows);
+
+        if(BorderPosition == 0){
 
             poBand->RasterIO( GF_Read, StartColumn - Border, StartRow - Border, NbrColumnsBorderTile, NbrRowsBorderTile,
                               TileData, NbrColumnsBorderTile, NbrRowsBorderTile, GDT_Float32,
                               0, 0 );
 
-        // if upper left corner Tile
-        }else if(StartRow == 0 && StartColumn == 0){
-            float * tmpTileData;
-            int tmpRowSize = (EndRow - StartRow) + 1 * Border;
-            int tmpColumnSize = (EndColumn - StartColumn) + 1 * Border;
-            tmpTileData = (float *) CPLMalloc(sizeof(float)*tmpRowSize*tmpColumnSize);
-            poBand->RasterIO( GF_Read, StartColumn, StartRow, tmpColumnSize, tmpRowSize,
-                              tmpTileData, tmpColumnSize, tmpRowSize, GDT_Float32,
-                              0, 0 );
+        }else{
 
+            float * tmpTileData;
             int Index = 0;
+            int tmpRowSize = 0, tmpColumnSize = 0;
+            int tmpStartRow = StartRow, tmpStartColumn = StartColumn;
+            int tmpIterRowStart = 0, tmpIterColStart = 0;
+            int tmpIterRowStop = NbrRowsBorderTile, tmpIterColStop = NbrColumnsBorderTile;
 
-            for(int i = Border; i < NbrRowsBorderTile; i++){
-
-                for(int j = Border; j < NbrColumnsBorderTile; j++){
-
-                    Index = j + i * NbrColumnsBorderTile;
-                    TileData[Index] = tmpTileData[j - Border + ((i - Border)*tmpColumnSize)];
-
-                }
-
+            if(BorderPosition == 1 || BorderPosition == 2){
+                tmpRowSize = (EndRow - StartRow) + 2 * Border;
+                tmpColumnSize = (EndColumn - StartColumn) + 1 * Border;
+            }else if (BorderPosition == 3 || BorderPosition == 4){
+                tmpRowSize = (EndRow - StartRow) + 1 * Border;
+                tmpColumnSize = (EndColumn - StartColumn) + 2 * Border;
+            }else{
+                tmpRowSize = (EndRow - StartRow) + 1 * Border;
+                tmpColumnSize = (EndColumn - StartColumn) + 1 * Border;
             }
-        // if upper tile, no left or right corner
-        }else if(StartRow == 0 && StartColumn != 0 && EndColumn != NbrColumns){
-            float * tmpTileData;
-            int tmpRowSize = (EndRow - StartRow) + 1 * Border;
-            int tmpColumnSize = (EndColumn - StartColumn) + 2 * Border;
+
+            switch (BorderPosition){
+            /*
+             * 1 = Left
+             * 2 = Right
+             * 3 = Top
+             * 4 = Down
+             * 5 = UpLeft
+             * 6 = UpRight
+             * 7 = DownLeft
+             * 8 = DownRight
+            */
+            case 1:
+                tmpStartRow -=Border;
+                tmpIterColStart += Border;
+                break;
+            case 2:
+                tmpStartColumn -= Border;
+                tmpStartRow -= Border;
+                tmpIterColStop -= Border;
+                break;
+            case 3:
+                tmpStartColumn -= Border;
+                tmpIterRowStart += Border;
+                break;
+            case 4:
+                tmpStartColumn -= Border;
+                tmpStartRow -= Border;
+                break;
+            case 5:
+                tmpStartColumn = StartColumn;
+                tmpIterRowStart += Border;
+                tmpIterColStart += Border;
+                break;
+            case 6:
+                tmpStartColumn -= Border;
+                tmpIterRowStart += Border;
+                tmpIterColStop -= Border;
+                break;
+            case 7:
+                tmpStartRow -= Border;
+                tmpIterColStart += Border;
+                break;
+            case 8:
+                tmpStartColumn -= Border;
+                tmpStartRow -= Border;
+                tmpIterColStop -= Border;
+                break;
+            }
             tmpTileData = (float *) CPLMalloc(sizeof(float) * tmpRowSize * tmpColumnSize);
-            poBand->RasterIO( GF_Read, StartColumn - Border, StartRow, tmpColumnSize, tmpRowSize,
+            poBand->RasterIO( GF_Read, tmpStartColumn, tmpStartRow, tmpColumnSize, tmpRowSize,
                               tmpTileData, tmpColumnSize, tmpRowSize, GDT_Float32,
                               0, 0 );
 
-            int Index = 0;
 
-            for(int i = Border; i < NbrRowsBorderTile; i++){
+            for(int i = tmpIterRowStart; i < tmpIterRowStop; i++){
 
-                for(int j = 0; j < NbrColumnsBorderTile; j++){
-
-                    Index = j + i * NbrColumnsBorderTile;
-                    TileData[Index] = tmpTileData[j + ((i - Border)*tmpColumnSize)];
-
-                }
-
-            }
-        // if upper right corner
-        }else if(StartRow == 0 && StartColumn != 0 && EndColumn == NbrColumns){
-
-            float * tmpTileData;
-            int tmpRowSize = (EndRow - StartRow) + 1 * Border;
-            int tmpColumnSize = (EndColumn - StartColumn) + 1 * Border;
-            tmpTileData = (float *) CPLMalloc(sizeof(float)*tmpRowSize*tmpColumnSize);
-            poBand->RasterIO( GF_Read, StartColumn - Border, StartRow, tmpColumnSize, tmpRowSize,
-                              tmpTileData, tmpColumnSize, tmpRowSize, GDT_Float32,
-                              0, 0 );
-
-            int Index = 0;
-
-            for(int i = Border; i < NbrRowsBorderTile; i++){
-
-                for(int j = 0; j < NbrColumnsBorderTile - Border; j++){
+                for(int j = tmpIterColStart; j < tmpIterColStop; j++){
 
                     Index = j + i * NbrColumnsBorderTile;
-                    TileData[Index] = tmpTileData[j - Border + ((i - Border)*tmpColumnSize)];
-
-                }
-
-            }
-
-        }else if(StartRow != 0 && StartColumn == 0 && EndColumn != NbrColumns && EndRow != NbrRows){
-            float * tmpTileData;
-            int tmpRowSize = (EndRow - StartRow) + 2 * Border;
-            int tmpColumnSize = (EndColumn - StartColumn) + 1 * Border;
-            tmpTileData = (float *) CPLMalloc(sizeof(float) * tmpRowSize * tmpColumnSize);
-            poBand->RasterIO( GF_Read, StartColumn, StartRow - Border, tmpColumnSize, tmpRowSize,
-                              tmpTileData, tmpColumnSize, tmpRowSize, GDT_Float32,
-                              0, 0 );
-
-            int Index = 0;
-
-            for(int i = 0; i < NbrRowsBorderTile; i++){
-
-                for(int j = Border; j < NbrColumnsBorderTile; j++){
-
-                    Index = j + i * NbrColumnsBorderTile;
-                    TileData[Index] = tmpTileData[j - Border + (i*tmpColumnSize)];
-
-                }
-
-            }
-
-        }else if(StartRow != 0 && StartColumn != 0 && EndColumn == NbrColumns && EndRow != NbrRows){
-            float * tmpTileData;
-            int tmpRowSize = (EndRow - StartRow) + 2 * Border;
-            int tmpColumnSize = (EndColumn - StartColumn) + 1 * Border;
-            tmpTileData = (float *) CPLMalloc(sizeof(float) * tmpRowSize * tmpColumnSize);
-            poBand->RasterIO( GF_Read, StartColumn - Border, StartRow, tmpColumnSize, tmpRowSize,
-                              tmpTileData, tmpColumnSize, tmpRowSize, GDT_Float32,
-                              0, 0 );
-
-            int Index = 0;
-
-            for(int i = 0; i < NbrRowsBorderTile; i++){
-
-                for(int j = 0; j < NbrColumnsBorderTile - Border; j++){
-
-                    Index = j + i * NbrColumnsBorderTile;
-                    TileData[Index] = tmpTileData[j + (i*tmpColumnSize)];
+                    TileData[Index] = tmpTileData[j - tmpIterColStart + ((i - tmpIterRowStart)*tmpColumnSize)];
 
                 }
 
             }
 
         }
-
 
     }else{
 
