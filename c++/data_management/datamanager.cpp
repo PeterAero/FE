@@ -43,7 +43,7 @@ int dataManager::getTilePosition(int StartRow, int StartColumn, int EndRow, int 
 
 }
 
-void dataManager::tiledata(GDALDataset * srcDataset, int Border){
+void dataManager::tileData(GDALDataset * srcDataset, int Border){
 
     // iterate over Image
     int TileSize = 200;
@@ -267,12 +267,27 @@ void dataManager::writeTileData(int StartRow, int StartColumn, int NbrRows, int 
     poDstBand->RasterIO( GF_Write, 0, 0, NbrColumns, NbrRows,
                       TileData, NbrColumns, NbrRows, GDT_Float32, 0, 0 );
 
-    GDALClose( (GDALDatasetH) poDstDataset );
+    if(prefix == "Border"){
+        this->FileListBorder.push_back(poDstDataset);
+    }else{
+        this->FileListNoBorder.push_back(poDstDataset);
+    }
+
 
 }
 
-dataManager::dataManager()
+
+dataManager::dataManager(char * FileName, int BorderSize)
 {
+    this->BorderSize = BorderSize;
+    this->FileName = FileName;
+
+    GDALAllRegister();
+    GDALDataset  * srcDataset;
+    srcDataset = (GDALDataset *) GDALOpen( this->FileName, GA_ReadOnly );
+
+    this->tileData(srcDataset, 0);
+    this->tileData(srcDataset, this->BorderSize);
 
 }
 

@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 #include <sstream>
+#include <list>
 
 #include "datamanager.h"
 
@@ -14,18 +15,9 @@ int main(int argc, char *argv[])
 {
 
     char * MyTif = "/home/fisc_p0/Desktop/TestData/SP27GTIF.TIF";
-    GDALAllRegister();
-    GDALDataset  * srcDataset;
-    srcDataset = (GDALDataset *) GDALOpen( MyTif, GA_ReadOnly );
+    int BorderSize = 5;
 
-    dataManager MyDataManager;
-
-    MyDataManager.tiledata(srcDataset, 0);
-
-    GDALDataset  * srcDataset2;
-    srcDataset2 = (GDALDataset *) GDALOpen( MyTif, GA_ReadOnly );
-
-    MyDataManager.tiledata(srcDataset2, 5);
+    dataManager MyDataManager(MyTif, BorderSize);
 
     return 0;
 }

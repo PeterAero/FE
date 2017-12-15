@@ -7,18 +7,25 @@
 #include <iostream>
 #include <string>
 #include <sstream>
+#include <list>
 
+using namespace std;
 class dataManager
 {
 
+
+
 public:
-    dataManager();
-    void tiledata(GDALDataset * srcDataset);
-    void tiledata(GDALDataset * srcDataset, int Border);
+    dataManager(char * FileName, int BorderSize);
+    std::list<GDALDataset *> FileListNoBorder;
+    std::list<GDALDataset *> FileListBorder;
+    int BorderSize;
+    char * FileName;
 
 private:
     int getTilePosition(int StartRow, int StartColumn, int EndRow, int EndColumn,
                                       int NbrColumns, int NbrRows);
+    void tileData(GDALDataset * srcDataset, int Border);
     void readTileData(int StartRow, int StartColumn, int EndRow, int EndColumn, GDALDataset * poDataset, int Border);
     void writeTileData(int StartRow, int StartColumn, int NbrRows, int NbrColumns,
                        float * TileData,
