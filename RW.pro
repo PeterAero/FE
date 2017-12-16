@@ -20,7 +20,9 @@ TEMPLATE = app
 
 
 SOURCES += main.cpp \
-    c++/data_management/datamanager.cpp
+    c++/data_management/datamanager.cpp \
+    c++/image_proc/imageproc.cpp
 
 HEADERS += \
-    c++/data_management/datamanager.h
+    c++/data_management/datamanager.h \
+    c++/image_proc/imageproc.h
