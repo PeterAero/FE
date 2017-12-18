@@ -9,13 +9,15 @@ class imageProc
 public:
     imageProc();
     void filterImg(GDALDataset * poDataset);
-    void createCircleMask(float Radius);
+    template <typename T> void createCircleMask(T Radius);
+    void createDonutMask(float innerRadius, float outerRadius);
 
 private:
     void saveImg(GDALDataset * poDataset, float * ImgData);
     float * FilterKernel;
     int NbrRowsFilterKernel;
     int NbrColumnsFilterKernel;
+    int NbrWeights;
 
 };
 
