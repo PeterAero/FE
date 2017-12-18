@@ -7,7 +7,7 @@
 #include <iostream>
 #include <string>
 #include <sstream>
-#include <list>
+#include <vector>
 
 using namespace std;
 class dataManager
@@ -17,8 +17,8 @@ class dataManager
 
 public:
     dataManager(char * FileName, int BorderSize);
-    std::list<GDALDataset *> FileListNoBorder;
-    std::list<GDALDataset *> FileListBorder;
+    std::vector<GDALDataset *> FileListNoBorder;
+    std::vector<GDALDataset *> FileListBorder;
     int BorderSize;
     char * FileName;
 

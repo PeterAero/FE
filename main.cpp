@@ -4,9 +4,10 @@
 #include <iostream>
 #include <string>
 #include <sstream>
-#include <list>
+#include <vector>
 
 #include "datamanager.h"
+#include "imageproc.h"
 
 using namespace std;
 
@@ -14,10 +15,19 @@ using namespace std;
 int main(int argc, char *argv[])
 {
 
-    char * MyTif = "/home/fisc_p0/Desktop/TestData/SP27GTIF.TIF";
+
+    char * MyTif = "/home/peter/Desktop/TestData/SP27GTIF.TIF";
     int BorderSize = 5;
 
     dataManager MyDataManager(MyTif, BorderSize);
+
+    imageProc MyImageProcessor;
+
+    MyImageProcessor.filterImg(MyDataManager.FileListBorder[0]);
+
+
+
+
 
     return 0;
 }

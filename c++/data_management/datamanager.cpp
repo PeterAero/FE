@@ -76,7 +76,7 @@ void dataManager::tileData(GDALDataset * srcDataset, int Border){
 
     }
 
-    GDALClose( (GDALDatasetH) srcDataset );
+
 }
 
 
@@ -85,7 +85,7 @@ void dataManager::readTileData(int StartRow, int StartColumn, int EndRow, int En
                                GDALDataset * poDataset, int Border){
 
     float * TileData;
-    GDALRasterBand *poBand;
+    GDALRasterBand * poBand;
     poBand = poDataset->GetRasterBand( 1 );
 
     int NbrRowsBorderTile = (EndRow - StartRow) + 2 * Border;
@@ -198,7 +198,6 @@ void dataManager::readTileData(int StartRow, int StartColumn, int EndRow, int En
         }
 
     }else{
-
         poBand->RasterIO( GF_Read, StartColumn, StartRow, NbrColumnsBorderTile, NbrRowsBorderTile,
                           TileData, NbrColumnsBorderTile, NbrRowsBorderTile, GDT_Float32,
                           0, 0 );
@@ -226,16 +225,15 @@ void dataManager::writeTileData(int StartRow, int StartColumn, int NbrRows, int 
 
     const char * pszFormat = "GTiff";
     GDALDriver * poDriver;
-    //char **papszMetadata;
+
     poDriver = GetGDALDriverManager()->GetDriverByName(pszFormat);
     if( poDriver == NULL )
         exit( 1 );
-    //papszMetadata = poDriver->GetMetadata();
 
     GDALDataset * poDstDataset;
     char **papszOptions = NULL;
 
-    std::string FileName ("/home/fisc_p0/Desktop/TestData/test");
+    std::string FileName ("/home/peter/Desktop/TestData/test");
     std::string FileSuffix (".tif");
     std::stringstream s1, s2;
     std::string StartRowStr, StartColumnStr;
@@ -258,7 +256,7 @@ void dataManager::writeTileData(int StartRow, int StartColumn, int NbrRows, int 
     poDstDataset = poDriver->Create( FileName.c_str(), NbrColumns, NbrRows, 1, GDT_Byte,
                                 papszOptions );
 
-    GDALRasterBand *poDstBand;
+    GDALRasterBand * poDstBand;
     poDstDataset->SetGeoTransform( adfGeoTransform );
     poDstDataset->SetProjection(srcDataset->GetProjectionRef());
 
@@ -269,6 +267,7 @@ void dataManager::writeTileData(int StartRow, int StartColumn, int NbrRows, int 
 
     if(prefix == "Border"){
         this->FileListBorder.push_back(poDstDataset);
+
     }else{
         this->FileListNoBorder.push_back(poDstDataset);
     }
@@ -279,6 +278,7 @@ void dataManager::writeTileData(int StartRow, int StartColumn, int NbrRows, int 
 
 dataManager::dataManager(char * FileName, int BorderSize)
 {
+
     this->BorderSize = BorderSize;
     this->FileName = FileName;
 
@@ -287,7 +287,7 @@ dataManager::dataManager(char * FileName, int BorderSize)
     srcDataset = (GDALDataset *) GDALOpen( this->FileName, GA_ReadOnly );
 
     this->tileData(srcDataset, 0);
-    this->tileData(srcDataset, this->BorderSize);
-
+    this->tileData(srcDataset, BorderSize);
+    GDALClose( (GDALDatasetH) srcDataset );
 }
 

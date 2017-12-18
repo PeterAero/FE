@@ -1,17 +1,85 @@
 #include "imageproc.h"
+#include <math.h>
+
+using namespace std;
 
 imageProc::imageProc()
 {
+    this->NbrRowsFilterKernel = 0;
+    this->NbrColumnsFilterKernel = 0;
 }
 
-void imageProc::filterImg(GDALDataset * poDataset, float * FilterKernel, int KernelSize){
+void imageProc::createCircleMask(float Radius){
+
+    this->NbrRowsFilterKernel = 2 * Radius + 1;
+    this->NbrColumnsFilterKernel = 2 * Radius + 1;
+    this->FilterKernel = (float *) CPLMalloc(sizeof(float) * this->NbrRowsFilterKernel * this->NbrColumnsFilterKernel);
+
+    for(int i = 0; i < this->NbrRowsFilterKernel * this->NbrColumnsFilterKernel; i++){
+        this->FilterKernel[i] = 0.;
+    }
+
+    int x_center = round(this->NbrRowsFilterKernel/2.);
+    int y_center = round(this->NbrColumnsFilterKernel/2.);
+
+    int Index = 0;
+    float dist = 0;
+
+    for(int i = 0; i < this->NbrRowsFilterKernel; i++){
+
+        for(int j = 0; j < this->NbrColumnsFilterKernel; j++){
+
+            Index = i + j * this->NbrColumnsFilterKernel;
+            dist = pow(x_center - i, 2.) + pow(y_center - j, 2.);
+
+            if (dist <= pow(Radius, 2.)){
+                this->FilterKernel[Index] = 1.;
+            }
+
+        }
+
+    }
+
+}
+
+void imageProc::saveImg(GDALDataset * srcDataset, float * ImgData){
+
+    const char * pszFormat = "GTiff";
+    GDALDriver * poDriver;
+    poDriver = GetGDALDriverManager()->GetDriverByName(pszFormat);
+    GDALDataset * poDstDataset;
+    char **papszOptions = NULL;
+    int NbrColumns = srcDataset->GetRasterXSize();
+    int NbrRows = srcDataset->GetRasterYSize();
+
+    std::string FileName ("/home/peter/Desktop/TestData/TPI.tif");
+    std::cout << "FileName: "<< FileName << std::endl;
+    poDstDataset = poDriver->Create( FileName.c_str(), NbrColumns, NbrRows, 1, GDT_Float32,
+                                papszOptions );
+
+    std::cout << "Create Output Image" << std::endl;
+    GDALRasterBand * poDstBand;
+    double adfGeoTransform[6];
+    srcDataset->GetGeoTransform( adfGeoTransform );
+    poDstDataset->SetGeoTransform( adfGeoTransform );
+    poDstDataset->SetProjection(srcDataset->GetProjectionRef());
+
+    poDstBand = poDstDataset->GetRasterBand(1);
+
+    poDstBand->RasterIO( GF_Write, 0, 0, NbrColumns, NbrColumns,
+                      ImgData, NbrColumns, NbrColumns, GDT_Float32, 0, 0 );
+
+
+}
+
+void imageProc::filterImg(GDALDataset * srcDataset){
 
     float * InputData;
     float * OutputData;
     GDALRasterBand * poBand;
-    poBand = poDataset->GetRasterBand( 1 );
-    int NbrColumns = poDataset->GetRasterXSize();
-    int NbrRows = poDataset->GetRasterYSize();
+    poBand = srcDataset->GetRasterBand( 1 );
+    int NbrColumns = srcDataset->GetRasterXSize();
+    int NbrRows = srcDataset->GetRasterYSize();
 
     InputData = (float *) CPLMalloc(sizeof(float) * NbrRows * NbrColumns);
     OutputData = (float *) CPLMalloc(sizeof(float) * NbrRows * NbrColumns);
@@ -25,50 +93,53 @@ void imageProc::filterImg(GDALDataset * poDataset, float * FilterKernel, int Ker
     }
 
 
+    /*
     float * MyFilterKernel;
-    int NbrRowsFilter = 5;
-    int NbrColumnsFilter = 5;
-    int FilterSize = 25;
 
-    InputData = (float *) CPLMalloc(sizeof(float) * NbrRowsFilter * NbrColumnsFilter);
-    for(int i = 0; i < 5 * 5; i++){
+    int NbrRowsFilter = 30;
+    int NbrColumnsFilter = 30;
+
+    MyFilterKernel = (float *) CPLMalloc(sizeof(float) * NbrRowsFilter * NbrColumnsFilter);
+    for(int i = 0; i < NbrRowsFilter * NbrColumnsFilter; i++){
         MyFilterKernel[i] = 0.;
     }
+    */
+    this->createCircleMask(2.);
 
-    MyFilterKernel[2] = 1;
-    MyFilterKernel[6] = 1;
-    MyFilterKernel[8] = 1;
-    MyFilterKernel[10] = 1;
-    MyFilterKernel[14] = 1;
-    MyFilterKernel[16] = 1;
-    MyFilterKernel[18] = 1;
-    MyFilterKernel[22] = 1;
+    int FilterSize = 0;
 
+    for(int i = 0; i < this->NbrRowsFilterKernel * this->NbrColumnsFilterKernel; i++){
+        if (this->FilterKernel[i] != 0.){
+            FilterSize++;
+        }
+    }
 
     double tmpValue = 0.;
     int tmpIndexImage = 0;
     int tmpIndexKernel = 0;
 
-    for(int i = 0; i < NbrRows - NbrRowsFilter; i++){
+    for(int i = 0; i < NbrRows - this->NbrRowsFilterKernel; i++){
 
-        for(int j = 0; j < NbrColumns - NbrColumnsFilter; j++){
+        for(int j = 0; j < NbrColumns - this->NbrColumnsFilterKernel; j++){
 
             tmpValue = 0.;
 
-            for(int k = 0; k < NbrRowsFilter; k++){
-                for ( int l = 0; l < NbrColumnsFilter; l++){
+            for(int k = 0; k < this->NbrRowsFilterKernel; k++){
+                for ( int l = 0; l < this->NbrColumnsFilterKernel; l++){
                     tmpIndexImage = (i + k) + ((j * NbrColumns) + l);
-                    tmpIndexKernel = k + l * NbrColumnsFilter;
-                    tmpValue += InputData[tmpIndexImage] * MyFilterKernel[tmpIndexKernel];
+                    tmpIndexKernel = k + l * this->NbrColumnsFilterKernel;
+                    tmpValue += InputData[tmpIndexImage] * this->FilterKernel[tmpIndexKernel];
                 }
             }
 
             tmpValue /= FilterSize;
-            tmpIndexImage = i + j * NbrColumns;
+            tmpIndexImage = i + this->NbrColumnsFilterKernel/2 + j * NbrColumns + this->NbrRowsFilterKernel/2*NbrColumns;
             OutputData[tmpIndexImage] = tmpValue;
+
 
         }
 
     }
 
+    this->saveImg(srcDataset, OutputData);
 }

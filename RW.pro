@@ -10,6 +10,8 @@ QT       -= gui
 
 INCLUDEPATH += /usr/include/gdal
 INCLUDEPATH += c++/data_management
+INCLUDEPATH += c++/image_proc
+
 LIBS += -L/usr/lib -lgdal
 
 TARGET = RW
