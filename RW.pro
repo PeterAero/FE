@@ -12,7 +12,7 @@ INCLUDEPATH += /usr/include/gdal
 INCLUDEPATH += c++/data_management
 INCLUDEPATH += c++/image_proc
 
-LIBS += -L/usr/lib -lgdal
+LIBS += -L/usr/lib -lgdal -lboost_system -lboost_filesystem
 
 TARGET = RW
 CONFIG   += console
