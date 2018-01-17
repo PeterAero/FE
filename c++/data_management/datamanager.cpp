@@ -5,6 +5,13 @@
 int dataManager::getTilePosition(int StartRow, int StartColumn, int EndRow, int EndColumn,
                                   int NbrColumns, int NbrRows){
 
+    /* Find out whether a tile is neighbouring to a border and if yes which border
+     *
+     *
+     *
+     *
+     */
+
     enum BorderType {NoBorder = 0, Left = 1, Right = 2, Up = 3, Down = 4,
                      UpLeft = 5, UpRight = 6, LowLeft = 7, LowRight = 8};
 
